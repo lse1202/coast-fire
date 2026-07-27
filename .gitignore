@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+*.log
+
+# iCloud sync artefacts
+.icloud
+*.icloud
