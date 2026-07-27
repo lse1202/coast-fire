@@ -104,6 +104,14 @@ body{
 .ctrl-val{font-size:15px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .ctrl-sub{font-size:11.5px;color:var(--slate);margin-top:8px}
 
+.ctrl-num{
+  width:100%;margin-top:8px;padding:7px 10px;border:1px solid var(--hair);border-radius:8px;
+  font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);
+  font-variant-numeric:tabular-nums;outline:none;-moz-appearance:textfield;
+}
+.ctrl-num::-webkit-outer-spin-button,.ctrl-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ctrl-num:focus{border-color:var(--brass-soft)}
+
 .lbl{display:inline-flex;align-items:center;gap:6px}
 .info{
   position:relative;display:inline-flex;align-items:center;justify-content:center;
@@ -249,12 +257,14 @@ svg text{font-family:'Inter',sans-serif}
 
       <div class="ctrl">
         <div class="ctrl-head"><label>Current age</label><span class="ctrl-val" id="v_cur">25</span></div>
-        <input type="range" id="cur" min="18" max="55" step="1" value="25">
+        <input type="range" id="curRange" min="0" max="100" step="1" value="25">
+        <input type="number" id="cur" class="ctrl-num" min="0" max="120" step="1" value="25" placeholder="exact age">
       </div>
 
       <div class="ctrl">
         <div class="ctrl-head"><label>Retirement age</label><span class="ctrl-val" id="v_ret">65</span></div>
-        <input type="range" id="ret" min="40" max="70" step="1" value="65">
+        <input type="range" id="retRange" min="0" max="100" step="1" value="65">
+        <input type="number" id="ret" class="ctrl-num" min="0" max="120" step="1" value="65" placeholder="exact age">
         <div class="chips" id="retChips">
           <button class="chip" data-t="50">Age 50</button>
           <button class="chip" data-t="55">Age 55</button>
@@ -264,12 +274,14 @@ svg text{font-family:'Inter',sans-serif}
 
       <div class="ctrl">
         <div class="ctrl-head"><label>Invested today</label><span class="ctrl-val" id="v_inv">&euro;10,000</span></div>
-        <input type="range" id="inv" min="0" max="600000" step="1000" value="10000">
+        <input type="range" id="invRange" min="0" max="10000000" step="10000" value="10000">
+        <input type="number" id="inv" class="ctrl-num" min="0" step="1000" value="10000" placeholder="exact amount">
       </div>
 
       <div class="ctrl" id="monWrap">
         <div class="ctrl-head"><label>Monthly savings</label><span class="ctrl-val" id="v_mon">&euro;1,000</span></div>
-        <input type="range" id="mon" min="0" max="5000" step="50" value="1000">
+        <input type="range" id="monRange" min="0" max="50000" step="100" value="1000">
+        <input type="number" id="mon" class="ctrl-num" min="0" step="50" value="1000" placeholder="exact amount">
       </div>
 
       <div class="ctrl">
@@ -691,6 +703,10 @@ function render(){
   $('v_ret').textContent = p.ret;
   $('v_inv').textContent = euro(p.inv);
   $('v_mon').textContent = euro(p.mon);
+  $('curRange').value = p.cur;
+  $('retRange').value = p.ret;
+  $('invRange').value = p.inv;
+  $('monRange').value = p.mon;
   $('v_ret2').textContent = p.rate.toFixed(2).replace(/0$/,'').replace(/\.$/,'')+'%';
   $('v_net').textContent = euro(p.net);
   $('v_swr').textContent = p.swr.toFixed(2)+'%';
@@ -796,6 +812,17 @@ function update(){ clampAges(); render(); }
 
 // wire inputs
 Object.values(inputs).forEach(el=>el.addEventListener('input', update));
+
+// cur/ret/inv/mon each have a paired range (drag) + number (exact/out-of-range
+// entry) input. The number input is the authoritative one (kept the original
+// id, wired above via `inputs`); the range is a secondary UI convenience that
+// writes into it on drag, and is synced back to it every render() so it stays
+// visually consistent regardless of what changed it (drag, typing, chips, or
+// clampAges()). The range's own min/max naturally clamp its displayed
+// position if the authoritative value is set beyond the slider's range.
+['cur','ret','inv','mon'].forEach(id=>{
+  $(id+'Range').addEventListener('input', ()=>{ inputs[id].value = $(id+'Range').value; update(); });
+});
 
 // chips
 document.querySelectorAll('#retChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.ret.value=ch.dataset.t; update();}));

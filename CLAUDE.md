@@ -157,6 +157,37 @@ configuration.
 
 ---
 
+## Dual range + number inputs (cur/ret/inv/mon)
+
+Current age, retirement age, invested today, and monthly savings each have
+**two** input elements. The **number input keeps the original id**
+(`cur`/`ret`/`inv`/`mon`) and is the authoritative value `read()` and the
+test harness consume; the range slider is renamed (`curRange`/`retRange`/
+`invRange`/`monRange`) and is a secondary, drag-only convenience for typical
+values. This is deliberate and matters if either is touched again:
+
+- Native `<input type=range>.value` **clamps silently** to its own min/max on
+  assignment; `<input type=number>` does not. Since the whole point of the
+  paired number box is to allow typing values *beyond* the slider's range
+  (e.g. €50M invested, tested manually), the number input has to be the one
+  `read()` trusts — a range-backed value would silently truncate anything
+  typed outside its bounds.
+- Keeping the *original* id on the number input (not the range) means
+  `tools/harness.mjs`'s auto-discovery and every existing `scenario({cur:...})`
+  call across both test files needed **zero changes** — they already only
+  care about an element with that id and a `value`, not its type.
+- Sync is one-directional and centralized: the range's `input` listener
+  writes into the number input then calls `update()`; every `render()` call
+  unconditionally sets `rangeEl.value = p.X` (browser clamps the display if
+  `p.X` is outside the range's bounds — harmless, the underlying value is
+  unaffected). Nothing ever writes the number input's value back to itself.
+
+Current bounds: age slider 0–100 (number input 0–120), invested-today slider
+€0–10,000,000 step €10,000 (number input unbounded above), monthly-savings
+slider €0–50,000 step €100 (number input unbounded above).
+
+---
+
 ## Design language
 
 Do not drift from this. It's consistent throughout and the consistency is most
