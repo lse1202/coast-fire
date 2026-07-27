@@ -153,5 +153,45 @@ let ok = true;
   ok = report('sweep actually covered ground', scanned > 10000, `${scanned} scenarios`) && ok;
 }
 
+// --- Sweep 4: staged 2-stage sub-sweep -----------------------------------
+// Staged mode decouples crossover *age* from final-balance *magnitude* in
+// ways a flat rate never can (front-load, then taper to a smaller final
+// balance than a flat rate reaching the same crossover would produce) —
+// a class of (cross-age, finalBal) geometry the flat-mode sweep above was
+// never tested against. A 2-stage sweep is sufficient; 3+ stage
+// combinations mostly interpolate between geometries already covered here.
+{
+  let scanned = 0, collisions = 0, escaped = 0;
+
+  for (let cur = 18; cur <= 55; cur += 1)
+    for (let ret = Math.max(cur + 1, 40); ret <= 70; ret += 2)
+      for (const inv of [0, 100000])
+        for (const rate of [2, 8])
+          for (const stage1Amt of [0, 1000, 4000])
+            for (const stage2Amt of [0, 1000, 4000])
+              for (const stage1Dur of [2, 8, 20]) {
+                const { c, svg } = scenario({ cur, ret, inv, rate, net: 3000, swr: 3.5, wtax: 14,
+                  savingsMode: 'staged', stageCount: 2, stage1Amt, stage1Dur, stage2Amt });
+                scanned++;
+
+                const ls = labels(svg);
+                const target = pick(ls, 'Target');
+                const stop = (c.cross !== null && c.cross <= ret) ? pick(ls, 'stop saving') : undefined;
+                if (stop) {
+                  const final = findFinal(ls, target, stop);
+                  if (gapTo(stop, [target, ...(final && Math.abs(final.x - stop.x) < 130 ? [final] : [])]) < MIN_GAP) collisions++;
+                  if (!inBounds(stop)) escaped++;
+                }
+              }
+
+  console.log(`\nChart label sweep — staged 2-stage sub-sweep`);
+  console.log(`  scenarios scanned          : ${scanned.toLocaleString('en-US')}`);
+  console.log();
+
+  ok = report(`no label collisions (< ${MIN_GAP}px)`, collisions === 0, `${collisions} found`) && ok;
+  ok = report('no labels outside the plot area', escaped === 0, `${escaped} found`) && ok;
+  ok = report('sweep actually covered ground', scanned > 10000, `${scanned} scenarios`) && ok;
+}
+
 console.log(ok ? '\nAll label checks passed.\n' : '\nLABEL CHECKS FAILED.\n');
 process.exit(ok ? 0 : 1);

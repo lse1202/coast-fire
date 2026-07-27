@@ -42,6 +42,21 @@ Balance path, one step per year:
 bal = bal · (1 + r) + annualContribution
 ```
 
+`annualContribution` is either a constant (`mon · 12`, flat mode, the
+original behavior) or looked up per elapsed year via `annualAt(y)` in staged
+mode — the user configures 2–5 stages, each `{amount, duration}` except the
+last, which is open-ended (runs until retirement). `annualAt` walks the
+non-final stages accumulating duration; once elapsed years exceed a stage's
+window it falls through to the next, and if it walks off the end it falls
+through to the final stage. No clamping is needed for durations summing to
+more or less than the actual accumulation span — `annualAt` is only ever
+called for `y` in `[0, years)`, so stages beyond the horizon are simply
+never reached (the per-stage age-range caption in `render()` surfaces this
+as "Not reached" rather than leaving it a silent no-op). Everything
+downstream of the balance path — crossover, `reqMonthly` — is unchanged by
+this; `reqMonthly` in particular stays a flat-rate concept regardless of
+mode (see its tooltip): it never reads `stages`.
+
 The **coast threshold** at any age is `target / (1+r)^(retireAge − age)` — the
 minimum you'd need at that age to reach the target with no further saving. The
 **crossover** is where the balance path meets that threshold, found by linear
@@ -98,6 +113,22 @@ Same defaults, other modes:
 | Coast number today, deplete to age 90 | €83,804 |
 | Required monthly, deplete to age 90 | €358 |
 | Balance at 65, deplete to age 90 | €1,519,997 (unchanged — confirms the accumulation phase is decoupled from mode) |
+
+Staged savings — same defaults, `stageCount:3, stage1: €500/10yr, stage2:
+€1,500/15yr, stage3: €3,000` (final, covers the remaining 15 years):
+
+| Quantity | Value |
+|---|---|
+| Independence target | €1,196,013 (unchanged — target formulas never read `stages`) |
+| Required monthly | €777 (unchanged — a flat-rate concept regardless of mode) |
+| Balance at 65 | €1,980,879 |
+| Crossover age | 49.78 |
+
+The strongest check isn't a captured anchor at all: a uniform staged plan
+(every stage the same amount, durations summing to ≥ years-to-retirement)
+must reproduce flat mode's `finalBal`/`coastNow`/`cross` exactly — this is
+checked directly rather than via a hardcoded number, since it's the proof
+the staged generalization is sound.
 
 If a change moves these and you didn't intend it, something broke.
 `tools/check-model.mjs` re-derives them.
@@ -191,7 +222,7 @@ run with plain `node`, no install:
 
 ```
 node tools/check-model.mjs     # re-derives the regression anchors, sweeps edge cases for NaN/Infinity
-node tools/check-labels.mjs    # sweeps ~139k slider combinations for chart label collisions
+node tools/check-labels.mjs    # 4 sweeps (~300k scenarios total: maintain, perpetuity, deplete, staged) for chart label collisions, ~2min
 ```
 
 Run both after any change to the maths or the chart. They read `index.html`
@@ -210,6 +241,11 @@ For anything touching the maths, also sanity-check the extremes by hand: age
 and the adjustable plan-until-age slider are all built — see "Deplete-mode
 drawdown" above and the regression anchors for the exact formulas and values.
 
+**Shipped — staged monthly savings.** A "Flat rate" vs "Staged" toggle;
+staged mode supports 2–5 stages, each `{amount, duration}` except the last
+(open-ended, runs to retirement). See the `annualAt` note under "Balance
+path" above and the staged regression anchors for exact values.
+
 **Also discussed, not started:**
 
 - State pension input (gesetzliche Rente) reducing the income the portfolio
@@ -223,13 +259,29 @@ drawdown" above and the regression anchors for the exact formulas and values.
 
 ## Deployment
 
-Static hosting, any provider. `docs/DEPLOY-github-pages.md` has the full
-walkthrough for GitHub Pages, including the `.nojekyll` file and the
-placeholders in `privacy.html` that must be filled in before publishing.
+**Live** at https://lse1202.github.io/coast-fire/, source at
+https://github.com/lse1202/coast-fire (public repo — nothing sensitive in it,
+just app source; going private would need paid GitHub Pro and wouldn't add
+any real protection to the live page anyway, since GitHub Pages has no
+auth). Pushing to `main` redeploys automatically in a minute or two.
 
-`privacy.html` still contains `[NAME]`, `[ANSCHRIFT]` and `[E-MAIL]`
-placeholders. The page must not go live until they're replaced — Art. 13 GDPR
-requires an identifiable controller.
+**Password gate.** `index.html` shows a full-page password prompt before
+revealing the calculator (search for "Password gate" in the `<script>`).
+This is a casual deterrent, not real security — it's a static file with no
+backend, so the password is visible to anyone who reads the page source.
+Per the no-persistence hard constraint above, it uses no
+sessionStorage/localStorage, so it re-prompts on every reload. Current
+password: `glacier-amber-10`.
+
+`privacy.html`'s `[NAME]` and `[E-MAIL]` are filled in (Linda Sagnier /
+linda.sagnier@gmail.com). `[ANSCHRIFT]` (postal address) is still a
+placeholder — Art. 13 GDPR requires a full address for an identifiable
+controller, not just name + email. A P.O. box or c/o address works fine if a
+home address isn't wanted public.
+
+`docs/DEPLOY-github-pages.md` has the original manual (no-terminal)
+walkthrough — superseded in practice by `git push` now that the repo exists,
+but still useful if this ever needs to be re-deployed from scratch by hand.
 
 ---
 

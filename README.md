@@ -22,7 +22,7 @@ Two Node scripts, no install required:
 
 ```bash
 node tools/check-model.mjs     # regression anchors, edge cases, model invariants
-node tools/check-labels.mjs    # ~250k-scenario sweep across maintain/perpetuity/deplete for chart label collisions (~80s)
+node tools/check-labels.mjs    # ~300k-scenario sweep across maintain/perpetuity/deplete/staged for chart label collisions (~2min)
 ```
 
 Both load `index.html` and run the page's own functions against a small DOM

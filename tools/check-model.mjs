@@ -153,5 +153,62 @@ for (const [name, inp] of Object.entries(modeCases)) {
     `tgt ${fmt(p.tgt)} · coast ${fmt(c.coastNow)} · final ${fmt(c.finalBal)} · runOut ${c.runOutAge === null ? '—' : c.runOutAge.toFixed(1)}`) && ok;
 }
 
+console.log('\nStaged savings mode');
+{
+  // Consistency invariant: a uniform staged plan (every stage the same
+  // amount as some flat rate, durations summing to >= years-to-retirement)
+  // must reproduce flat mode exactly. This is the generalization proof —
+  // it doesn't depend on any hand-derived number.
+  const FLAT_MON = 1200;
+  const flat = scenario({ ...DEFAULTS, mon: FLAT_MON });
+  const staged = scenario({ ...DEFAULTS, savingsMode: 'staged', stageCount: 3,
+    stage1Amt: FLAT_MON, stage1Dur: 15, stage2Amt: FLAT_MON, stage2Dur: 15, stage3Amt: FLAT_MON });
+  ok = report('uniform staged plan matches flat mode exactly',
+    Math.round(staged.c.finalBal) === Math.round(flat.c.finalBal) &&
+    Math.abs(staged.c.coastNow - flat.c.coastNow) < 1 &&
+    Math.abs(staged.c.cross - flat.c.cross) < 0.01,
+    `finalBal ${fmt(staged.c.finalBal)} vs ${fmt(flat.c.finalBal)}`) && ok;
+
+  // Concrete regression anchor, captured from an actual run (never hand-derived).
+  const anchor = scenario({ ...DEFAULTS, savingsMode: 'staged', stageCount: 3,
+    stage1Amt: 500, stage1Dur: 10, stage2Amt: 1500, stage2Dur: 15, stage3Amt: 3000 });
+  ok = report('staged target unaffected (matches flat-mode anchor)', Math.round(anchor.p.tgt) === 1196013,
+    `got ${fmt(anchor.p.tgt)}`) && ok;
+  ok = report('staged required monthly unaffected (matches flat-mode anchor)', Math.round(anchor.c.reqMonthly) === 777,
+    `got ${fmt(anchor.c.reqMonthly)}`) && ok;
+  ok = report('staged balance at retirement', Math.round(anchor.c.finalBal) === 1980879,
+    `got ${fmt(anchor.c.finalBal)}, expected ${fmt(1980879)}`) && ok;
+  ok = report('staged crossover age (×100)', Math.round(anchor.c.cross * 100) === 4978,
+    `got ${Math.round(anchor.c.cross * 100)}, expected 4978`) && ok;
+}
+
+console.log('\nStaged savings edge cases — every figure must be finite');
+const stagedCases = {
+  'stageCount=5, minimum span (54→55)': { ...DEFAULTS, cur: 54, ret: 55, savingsMode: 'staged', stageCount: 5,
+    stage1Amt: 500, stage1Dur: 1, stage2Amt: 1000, stage2Dur: 1, stage3Amt: 1500, stage3Dur: 1, stage4Amt: 2000, stage4Dur: 1, stage5Amt: 2500 },
+  'durations sum far beyond horizon': { ...DEFAULTS, savingsMode: 'staged', stageCount: 2, stage1Amt: 1000, stage1Dur: 40, stage2Amt: 5000 },
+  'all-zero staged amounts': { ...DEFAULTS, savingsMode: 'staged', stageCount: 2, stage1Amt: 0, stage1Dur: 10, stage2Amt: 0 },
+  'stageCount=5 full ramp': { ...DEFAULTS, savingsMode: 'staged', stageCount: 5,
+    stage1Amt: 0, stage1Dur: 5, stage2Amt: 500, stage2Dur: 10, stage3Amt: 1500, stage3Dur: 10, stage4Amt: 3000, stage4Dur: 5, stage5Amt: 5000 },
+};
+for (const [name, inp] of Object.entries(stagedCases)) {
+  const { p, c } = scenario(inp);
+  const vals = [p.tgt, p.gross, c.coastNow, c.finalBal, c.reqMonthly];
+  const finite = vals.every(Number.isFinite);
+  const crossOk = c.cross === null || Number.isFinite(c.cross);
+  ok = report(name, finite && crossOk,
+    `tgt ${fmt(p.tgt)} · coast ${fmt(c.coastNow)} · final ${fmt(c.finalBal)} · cross ${c.cross === null ? '—' : c.cross.toFixed(1)}`) && ok;
+}
+{
+  // Raising an early stage's amount (holding everything else fixed) must
+  // never make the crossover age later — same pattern as the existing
+  // flat-mode "more saving ⇒ crossover never later" invariant.
+  const at = (stage1Amt) => scenario({ ...DEFAULTS, savingsMode: 'staged', stageCount: 2, stage1Amt, stage1Dur: 20, stage2Amt: 1000 }).c.cross ?? Infinity;
+  const monotone = [0, 500, 1000, 2000, 5000].map(at);
+  ok = report('raising an early stage amount ⇒ crossover never later',
+    monotone.every((v, i) => i === 0 || v <= monotone[i - 1]),
+    monotone.map((v) => (v === Infinity ? 'never' : v.toFixed(1))).join(' → ')) && ok;
+}
+
 console.log(ok ? '\nAll model checks passed.\n' : '\nMODEL CHECKS FAILED.\n');
 process.exit(ok ? 0 : 1);

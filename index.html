@@ -102,6 +102,7 @@ body{
 .ctrl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .ctrl-head label{font-size:13px;color:var(--slate);font-weight:500}
 .ctrl-val{font-size:15px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.ctrl-sub{font-size:11.5px;color:var(--slate);margin-top:8px}
 
 .lbl{display:inline-flex;align-items:center;gap:6px}
 .info{
@@ -266,9 +267,75 @@ svg text{font-family:'Inter',sans-serif}
         <input type="range" id="inv" min="0" max="600000" step="1000" value="10000">
       </div>
 
-      <div class="ctrl">
+      <div class="ctrl" id="monWrap">
         <div class="ctrl-head"><label>Monthly savings</label><span class="ctrl-val" id="v_mon">&euro;1,000</span></div>
         <input type="range" id="mon" min="0" max="5000" step="50" value="1000">
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="lbl"><label>Monthly savings mode</label><span class="info" tabindex="0" role="button" aria-label="Flat rate vs staged">i<span class="tip"><b>Flat rate</b> saves the same amount every month from now to retirement — the simplest assumption and the easiest to reason about. <b>Staged</b> lets the monthly amount step up (or down) at set ages instead, closer to how savings capacity actually tracks a career: entry-level pay, a raise, a mortgage paid off. The independence target and required-monthly figure are unaffected either way — only the accumulation path changes.</span></span></span></div>
+        <input type="hidden" id="savingsMode" value="flat">
+        <div class="chips" id="savingsModeChips">
+          <button class="chip" data-t="flat">Flat rate</button>
+          <button class="chip" data-t="staged">Staged</button>
+        </div>
+      </div>
+
+      <div class="ctrl hidden" id="stageCountWrap">
+        <div class="ctrl-head"><label>Number of stages</label></div>
+        <input type="hidden" id="stageCount" value="2">
+        <div class="chips" id="stageCountChips">
+          <button class="chip" data-t="2">2</button>
+          <button class="chip" data-t="3">3</button>
+          <button class="chip" data-t="4">4</button>
+          <button class="chip" data-t="5">5</button>
+        </div>
+      </div>
+
+      <div class="ctrl hidden" id="stage1AmtWrap">
+        <div class="ctrl-head"><label>Stage 1</label><span class="ctrl-val" id="v_stage1Amt">&euro;500</span></div>
+        <input type="range" id="stage1Amt" min="0" max="5000" step="50" value="500">
+        <div class="ctrl-sub" id="stage1Range"></div>
+      </div>
+      <div class="ctrl hidden" id="stage1DurWrap">
+        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage1Dur">10</span></div>
+        <input type="range" id="stage1Dur" min="1" max="40" step="1" value="10">
+      </div>
+
+      <div class="ctrl hidden" id="stage2AmtWrap">
+        <div class="ctrl-head"><label>Stage 2</label><span class="ctrl-val" id="v_stage2Amt">&euro;1,500</span></div>
+        <input type="range" id="stage2Amt" min="0" max="5000" step="50" value="1500">
+        <div class="ctrl-sub" id="stage2Range"></div>
+      </div>
+      <div class="ctrl hidden" id="stage2DurWrap">
+        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage2Dur">10</span></div>
+        <input type="range" id="stage2Dur" min="1" max="40" step="1" value="10">
+      </div>
+
+      <div class="ctrl hidden" id="stage3AmtWrap">
+        <div class="ctrl-head"><label>Stage 3</label><span class="ctrl-val" id="v_stage3Amt">&euro;2,500</span></div>
+        <input type="range" id="stage3Amt" min="0" max="5000" step="50" value="2500">
+        <div class="ctrl-sub" id="stage3Range"></div>
+      </div>
+      <div class="ctrl hidden" id="stage3DurWrap">
+        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage3Dur">10</span></div>
+        <input type="range" id="stage3Dur" min="1" max="40" step="1" value="10">
+      </div>
+
+      <div class="ctrl hidden" id="stage4AmtWrap">
+        <div class="ctrl-head"><label>Stage 4</label><span class="ctrl-val" id="v_stage4Amt">&euro;3,500</span></div>
+        <input type="range" id="stage4Amt" min="0" max="5000" step="50" value="3500">
+        <div class="ctrl-sub" id="stage4Range"></div>
+      </div>
+      <div class="ctrl hidden" id="stage4DurWrap">
+        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage4Dur">10</span></div>
+        <input type="range" id="stage4Dur" min="1" max="40" step="1" value="10">
+      </div>
+
+      <div class="ctrl hidden" id="stage5AmtWrap">
+        <div class="ctrl-head"><label>Stage 5</label><span class="ctrl-val" id="v_stage5Amt">&euro;4,000</span></div>
+        <input type="range" id="stage5Amt" min="0" max="5000" step="50" value="4000">
+        <div class="ctrl-sub" id="stage5Range"></div>
       </div>
 
       <div class="ctrl">
@@ -375,13 +442,23 @@ const euroK = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR
 
 const inputs = {cur:$('cur'), ret:$('ret'), inv:$('inv'), mon:$('mon'), rate:$('rate'),
                 net:$('net'), swr:$('swr'), wtax:$('wtax'),
-                mode:$('mode'), maintainDef:$('maintainDef'), planAge:$('planAge')};
+                mode:$('mode'), maintainDef:$('maintainDef'), planAge:$('planAge'),
+                savingsMode:$('savingsMode'), stageCount:$('stageCount'),
+                stage1Amt:$('stage1Amt'), stage2Amt:$('stage2Amt'), stage3Amt:$('stage3Amt'),
+                stage4Amt:$('stage4Amt'), stage5Amt:$('stage5Amt'),
+                stage1Dur:$('stage1Dur'), stage2Dur:$('stage2Dur'), stage3Dur:$('stage3Dur'), stage4Dur:$('stage4Dur')};
 
 function read(){
   const cur=+inputs.cur.value, ret=+inputs.ret.value, inv=+inputs.inv.value,
         mon=+inputs.mon.value, rate=+inputs.rate.value;
   const net=+inputs.net.value, swr=+inputs.swr.value, wtax=+inputs.wtax.value;
   const mode=inputs.mode.value, maintainDef=inputs.maintainDef.value, planAge=+inputs.planAge.value;
+  const savingsMode = inputs.savingsMode.value;
+  const stageCount = +inputs.stageCount.value;
+  const stages = [];
+  for(let i=1;i<=5;i++){
+    stages.push({ amt: +inputs['stage'+i+'Amt'].value, dur: i<5 ? +inputs['stage'+i+'Dur'].value : null });
+  }
   const annualNet = net*12;
   const gross = annualNet/(1 - wtax/100);   // gross up for German capital-gains tax
   const r = rate/100;
@@ -394,12 +471,27 @@ function read(){
   } else {
     tgt = gross/(swr/100);                         // SWR-based (recommended) — target = grossed-up spend / safe withdrawal rate
   }
-  return { cur, ret, inv, mon, rate, net, swr, wtax, annualNet, gross, tgt, mode, maintainDef, planAge };
+  return { cur, ret, inv, mon, rate, net, swr, wtax, annualNet, gross, tgt, mode, maintainDef, planAge, savingsMode, stageCount, stages };
 }
 
 function compute(p){
-  const r = p.rate/100, annual = p.mon*12, years = Math.max(1, p.ret - p.cur);
+  const r = p.rate/100, years = Math.max(1, p.ret - p.cur);
   const coastNow = p.tgt / Math.pow(1+r, years);
+
+  // Monthly savings, per year elapsed since `cur` (0-indexed). Flat mode is
+  // a constant; staged mode walks the configured stages, falling through to
+  // the final (open-ended) stage once earlier durations are exhausted — no
+  // clamping needed, since this is only ever called for y in [0, years).
+  function annualAt(y){
+    if(p.savingsMode !== 'staged') return p.mon*12;
+    let acc = 0;
+    for(let i=0;i<p.stageCount-1;i++){
+      const st = p.stages[i];
+      if(y < acc + st.dur) return st.amt*12;
+      acc += st.dur;
+    }
+    return p.stages[p.stageCount-1].amt*12;
+  }
 
   // yearly series: balance if contributing every year
   const series = []; // {age, bal, thr}
@@ -408,7 +500,7 @@ function compute(p){
     const age = p.cur + y;
     const thr = p.tgt / Math.pow(1+r, p.ret-age); // = target at retirement
     series.push({age, bal, thr});
-    if(y<years) bal = bal*(1+r) + annual;
+    if(y<years) bal = bal*(1+r) + annualAt(y);
   }
   const finalBal = series[series.length-1].bal;
 
@@ -583,6 +675,14 @@ function drawChart(p, c){
   $('chart').innerHTML = s;
 }
 
+// mode-agnostic savings description for the status sentence — a no-op
+// string in flat mode (identical to the old `${euro(p.mon)}/mo`), so flat
+// mode's status text is unaffected by this feature existing at all.
+function savingsDesc(p){
+  if(p.savingsMode !== 'staged') return `${euro(p.mon)}/mo`;
+  return p.stages.slice(0, p.stageCount).map(s => euro(s.amt)+'/mo').join(' → ');
+}
+
 function render(){
   const p = read(), c = compute(p);
 
@@ -626,11 +726,11 @@ function render(){
     st.innerHTML = `You're <b>already at Coast FIRE</b>. Left untouched at ${p.rate.toFixed(2).replace(/0$/,'').replace(/\.$/,'')}% real, your ${euro(p.inv)} grows to your ${euroK(p.tgt)} target by age ${p.ret} with no further saving.`;
   } else if(reached){
     st.className='status coast';
-    st.innerHTML = `Saving <b>${euro(p.mon)}/mo</b>, your balance meets the coast line around <b>age ${c.cross.toFixed(0)}</b> &mdash; ${(c.cross-p.cur).toFixed(0)} years of saving. After that, contributions are optional and the portfolio glides to ${euroK(p.tgt)} on its own.`;
+    st.innerHTML = `Saving <b>${savingsDesc(p)}</b>, your balance meets the coast line around <b>age ${c.cross.toFixed(0)}</b> &mdash; ${(c.cross-p.cur).toFixed(0)} years of saving. After that, contributions are optional and the portfolio glides to ${euroK(p.tgt)} on its own.`;
   } else {
     st.className='status short';
     const shortfall = p.tgt - c.finalBal;
-    st.innerHTML = `At <b>${euro(p.mon)}/mo</b> you reach about <b>${euroK(c.finalBal)}</b> by age ${p.ret} &mdash; roughly ${euroK(shortfall)} short of ${euroK(p.tgt)}. To close it you'd need about <b>${euro(Math.ceil(c.reqMonthly/10)*10)}/mo</b>, or a later date, higher return, or lower target.`;
+    st.innerHTML = `At <b>${savingsDesc(p)}</b> you reach about <b>${euroK(c.finalBal)}</b> by age ${p.ret} &mdash; roughly ${euroK(shortfall)} short of ${euroK(p.tgt)}. To close it you'd need about <b>${euro(Math.ceil(c.reqMonthly/10)*10)}/mo</b>, or a later date, higher return, or lower target.`;
   }
   if(p.mode==='deplete'){
     st.innerHTML += c.runOutAge!==null
@@ -642,12 +742,46 @@ function render(){
   $('maintainDefWrap').classList.toggle('hidden', p.mode==='deplete');
   $('planAgeWrap').classList.toggle('hidden', p.mode!=='deplete');
 
+  const staged = p.savingsMode==='staged';
+  $('monWrap').classList.toggle('hidden', staged);
+  $('stageCountWrap').classList.toggle('hidden', !staged);
+  for(let i=1;i<=5;i++){
+    $('v_stage'+i+'Amt').textContent = euro(p.stages[i-1].amt);
+    $('stage'+i+'AmtWrap').classList.toggle('hidden', !staged || i>p.stageCount);
+    if(i<5){
+      $('v_stage'+i+'Dur').textContent = p.stages[i-1].dur;
+      $('stage'+i+'DurWrap').classList.toggle('hidden', !staged || i>=p.stageCount);
+    }
+  }
+
+  // per-stage age-range captions — also surfaces a stage that's configured
+  // but never reached because earlier stages already ran out the clock
+  if(staged){
+    let age = p.cur;
+    for(let i=0;i<5;i++){
+      if(i>=p.stageCount) continue;
+      const rangeEl = $('stage'+(i+1)+'Range');
+      const isFinal = i===p.stageCount-1;
+      if(age>=p.ret){
+        rangeEl.textContent = `Not reached — retirement is age ${p.ret}`;
+      } else if(isFinal){
+        rangeEl.textContent = `Age ${age} until retirement`;
+      } else {
+        const dur = p.stages[i].dur, endAge = age+dur;
+        rangeEl.textContent = endAge>p.ret ? `Age ${age}–${p.ret} (retirement reached first)` : `Age ${age}–${endAge}`;
+        age = endAge;
+      }
+    }
+  }
+
   // chip active states
   document.querySelectorAll('#retChips .chip').forEach(ch=>ch.classList.toggle('on', +ch.dataset.t===p.ret));
   document.querySelectorAll('#rateChips .chip').forEach(ch=>ch.classList.toggle('on', +ch.dataset.t===p.rate));
   document.querySelectorAll('#swrChips .chip').forEach(ch=>ch.classList.toggle('on', +ch.dataset.t===p.swr));
   document.querySelectorAll('#modeChips .chip').forEach(ch=>ch.classList.toggle('on', ch.dataset.t===p.mode));
   document.querySelectorAll('#maintainDefChips .chip').forEach(ch=>ch.classList.toggle('on', ch.dataset.t===p.maintainDef));
+  document.querySelectorAll('#savingsModeChips .chip').forEach(ch=>ch.classList.toggle('on', ch.dataset.t===p.savingsMode));
+  document.querySelectorAll('#stageCountChips .chip').forEach(ch=>ch.classList.toggle('on', +ch.dataset.t===p.stageCount));
 
   drawChart(p, c);
 }
@@ -669,6 +803,8 @@ document.querySelectorAll('#rateChips .chip').forEach(ch=>ch.addEventListener('c
 document.querySelectorAll('#swrChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.swr.value=ch.dataset.t; update();}));
 document.querySelectorAll('#modeChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.mode.value=ch.dataset.t; update();}));
 document.querySelectorAll('#maintainDefChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.maintainDef.value=ch.dataset.t; update();}));
+document.querySelectorAll('#savingsModeChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.savingsMode.value=ch.dataset.t; update();}));
+document.querySelectorAll('#stageCountChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.stageCount.value=ch.dataset.t; update();}));
 
 update();
 
