@@ -91,6 +91,68 @@ full real return `r` ignores sequence-of-returns risk — the same reason safe
 withdrawal rates sit below expected real returns. This is flagged in the
 plan-until-age tooltip; no separate lower drawdown-phase return is modeled.
 
+### Contributed line (chart)
+
+Each `series`/`drawdown` entry also carries `contributed` — a parallel
+running sum of principal paid in (starts at `inv`, adds each year's
+`annualAt(y)`, no compounding). Structurally always `<= bal`: `bal`
+compounds every contribution at `r` (slider floor 2%, always positive),
+`contributed` sums the same contributions at 1×. Carried **flat** through
+deplete-mode's drawdown (no more contributions happen once retired) — this
+is why `yMax` never needed to account for it. Drawn as a slate dotted
+polyline in `drawChart()`, distinct from the brass-dashed coast threshold.
+
+### Chart hover
+
+`drawChart()` appends four always-present but initially-hidden overlay
+elements (`hoverGuide` line, `hoverBalDot`/`hoverThrDot`/`hoverContribDot`
+circles, all `opacity="0"`) as part of its own SVG output — this matters
+because `$('chart').innerHTML = s` runs on every `render()`, so anything
+*not* re-emitted by `drawChart()` itself would be orphaned by the very next
+slider drag. It also stashes `{X, Y, xMin, xMax, mL, pw, combined}` into a
+module-level `lastChart`, read by a mousemove listener wired once (not
+re-wired per render, since the `<svg id="chart">` element itself is never
+replaced, only its children). The listener converts `evt.clientX` to
+viewBox-space via `rect.width`/640 (the SVG has `width="100%"`, no explicit
+height, so the browser derives rendered height purely from the 640:380
+`viewBox` aspect ratio — the scale factor is exact, not approximate),
+inverts `X(age)` to find the nearest age, and **snaps to the nearest
+computed year** rather than interpolating — a value between two yearly
+points isn't something the model actually computed, so showing one would
+imply false precision.
+
+The tooltip text itself lives in a plain HTML `<div id="chartTip">`
+(`position:fixed`, positioned from `evt.clientX/Y` directly), not inside the
+SVG — deliberately a **new** `.chart-tip` class rather than reusing the
+existing `.tip` tooltip style, because `.tip`'s visibility is CSS-gated to a
+`.info:hover`/`.info:focus`/`.info.open` ancestor selector a chart tooltip
+has no relationship to; reusing it verbatim renders permanently invisible.
+Keeping tooltip text in HTML (not SVG `<text>`) also means
+`tools/check-labels.mjs`'s `<text>`-regex label sweep needs no changes for
+this feature at all — hover adds zero `<text>` nodes, and `scenario()` never
+dispatches mouse events regardless.
+
+`tools/harness.mjs`'s `fakeEl` needed one new stub for this:
+`setAttribute(){}` — the hover handler calls it on every mousemove-equivalent
+DOM update, and without the stub every `scenario()` call would throw the
+moment `render()` ran under test.
+
+### Page layout
+
+`.grid` is two equal-width `.panel`s side by side (`grid-template-columns:1fr 1fr`,
+collapses to one column under 760px): "Your assumptions" (raw numeric inputs
+only — age, retirement age, invested today, monthly savings, real return, net
+income, withdrawal rate, tax) and "Plan settings" (everything that changes
+*how* the numbers are used — monthly-savings mode + the staged-savings stage
+cards, at-retirement mode + its sub-choices, and the derived independence-target
+box). The chart, its legend, and the four readout tiles live in a full-width
+section *below* `.grid`, not inside it — this used to be the second grid
+column, but a tall "Plan settings" column (especially with 5 staged-savings
+stages) made a narrow chart column look cramped and unbalanced next to it.
+The staged-savings stage cards (`#stagesPanel`, `.stage-row`/`.stage-card`)
+nest inside the "Plan settings" panel now, not their own standalone `.panel`
+— same ids, same `render()` toggle logic, purely relocated markup.
+
 ### Regression anchors
 
 With the shipped defaults — age 25 → 65, €10,000 invested, €1,000/month, 5%
@@ -123,6 +185,12 @@ Staged savings — same defaults, `stageCount:3, stage1: €500/10yr, stage2:
 | Required monthly | €777 (unchanged — a flat-rate concept regardless of mode) |
 | Balance at 65 | €1,980,879 |
 | Crossover age | 49.78 |
+
+Contributed line — shipped defaults (flat mode), age 25→65, €1,000/mo:
+
+| Quantity | Value |
+|---|---|
+| Contributed at 65 | €490,000 (= €10,000 invested + €1,000×12×40 years — no compounding, exact) |
 
 The strongest check isn't a captured anchor at all: a uniform staged plan
 (every stage the same amount, durations summing to ≥ years-to-retirement)
@@ -275,7 +343,16 @@ drawdown" above and the regression anchors for the exact formulas and values.
 **Shipped — staged monthly savings.** A "Flat rate" vs "Staged" toggle;
 staged mode supports 2–5 stages, each `{amount, duration}` except the last
 (open-ended, runs to retirement). See the `annualAt` note under "Balance
-path" above and the staged regression anchors for exact values.
+path" above and the staged regression anchors for exact values. The stage
+editor itself lives in its own full-width `#stagesPanel` below the main
+grid (horizontal row of `.stage-card`s), not in the left assumptions column
+— moved there because it was making that column much taller than the chart.
+
+**Shipped — contributed line + chart hover.** A slate dotted "Contributed
+(no growth)" line on the chart, and hovering anywhere on the chart shows a
+guide line, marker dots, and an exact-value tooltip (age, balance,
+contributed, and coast threshold where applicable). See "Contributed line
+(chart)" and "Chart hover" above for the exact mechanics.
 
 **Also discussed, not started:**
 

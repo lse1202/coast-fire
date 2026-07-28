@@ -83,7 +83,7 @@ body{
 .status b{font-weight:600}
 
 .grid{
-  display:grid;grid-template-columns:320px 1fr;gap:28px;
+  display:grid;grid-template-columns:1fr 1fr;gap:28px;
   margin-top:32px;align-items:start;
 }
 @media(max-width:760px){.grid{grid-template-columns:1fr;gap:24px}}
@@ -111,6 +111,13 @@ body{
 }
 .ctrl-num::-webkit-outer-spin-button,.ctrl-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .ctrl-num:focus{border-color:var(--brass-soft)}
+
+#stagesPanel{margin-bottom:20px}
+.stage-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.stage-card{flex:1 1 170px;min-width:150px;background:var(--paper);border:1px solid var(--hair);border-radius:10px;padding:14px 16px}
+.stage-card .ctrl{margin-bottom:14px}
+.stage-card .ctrl:last-child{margin-bottom:0}
+@media(max-width:760px){.stage-card{flex:1 1 45%}}
 
 .tabbar{display:flex;gap:24px;margin-bottom:28px;border-bottom:1px solid var(--hair)}
 .tab{
@@ -234,13 +241,21 @@ input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(-
 .ro-num small{font-family:'Inter';font-size:13px;color:var(--slate);font-weight:500}
 .ro.accent .ro-num{color:var(--brass)}
 
-.chart-wrap{margin-top:2px}
+.chart-wrap{margin-top:28px}
 .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12.5px;color:var(--slate)}
 .legend span{display:flex;align-items:center;gap:7px}
 .swatch{width:16px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
 .sw-green{border-color:var(--green)}
 .sw-brass{border-color:var(--brass);border-top-style:dashed}
 .sw-target{border-color:var(--ink);border-top-style:dashed}
+.sw-contrib{border-color:var(--slate);border-top-style:dotted}
+
+.chart-tip{
+  position:fixed;display:none;pointer-events:none;z-index:40;
+  background:var(--ink);color:var(--paper);font-family:'Inter',sans-serif;
+  font-size:12px;line-height:1.5;padding:8px 11px;border-radius:8px;
+  box-shadow:0 8px 24px rgba(24,32,49,.2);
+}
 
 svg text{font-family:'Inter',sans-serif}
 
@@ -276,7 +291,7 @@ svg text{font-family:'Inter',sans-serif}
   <div class="hero">
     <div class="hero-label">Invest this today and never add another euro &mdash; it glides to your target</div>
     <div class="hero-num" id="heroNum">&euro;170,000</div>
-    <div class="hero-sub">The lump sum that, left completely untouched, compounds up to your independence target by your retirement age at the real return you set. Below it, you still need to keep saving until your balance catches up.</div>
+    <div class="hero-sub" id="heroSub">The lump sum that, left completely untouched, compounds up to your independence target by age 65 at 5.0% real. Below it, you still need to keep saving until your balance catches up.</div>
   </div>
 
   <div class="status" id="status"></div>
@@ -315,72 +330,6 @@ svg text{font-family:'Inter',sans-serif}
       </div>
 
       <div class="ctrl">
-        <div class="ctrl-head"><span class="lbl"><label>Monthly savings mode</label><span class="info" tabindex="0" role="button" aria-label="Flat rate vs staged">i<span class="tip"><b>Flat rate</b> saves the same amount every month from now to retirement — the simplest assumption and the easiest to reason about. <b>Staged</b> lets the monthly amount step up (or down) at set ages instead, closer to how savings capacity actually tracks a career: entry-level pay, a raise, a mortgage paid off. The independence target and required-monthly figure are unaffected either way — only the accumulation path changes.</span></span></span></div>
-        <input type="hidden" id="savingsMode" value="flat">
-        <div class="chips" id="savingsModeChips">
-          <button class="chip" data-t="flat">Flat rate</button>
-          <button class="chip" data-t="staged">Staged</button>
-        </div>
-      </div>
-
-      <div class="ctrl hidden" id="stageCountWrap">
-        <div class="ctrl-head"><label>Number of stages</label></div>
-        <input type="hidden" id="stageCount" value="2">
-        <div class="chips" id="stageCountChips">
-          <button class="chip" data-t="2">2</button>
-          <button class="chip" data-t="3">3</button>
-          <button class="chip" data-t="4">4</button>
-          <button class="chip" data-t="5">5</button>
-        </div>
-      </div>
-
-      <div class="ctrl hidden" id="stage1AmtWrap">
-        <div class="ctrl-head"><label>Stage 1</label><span class="ctrl-val" id="v_stage1Amt">&euro;500</span></div>
-        <input type="range" id="stage1Amt" min="0" max="5000" step="50" value="500">
-        <div class="ctrl-sub" id="stage1Range"></div>
-      </div>
-      <div class="ctrl hidden" id="stage1DurWrap">
-        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage1Dur">10</span></div>
-        <input type="range" id="stage1Dur" min="1" max="40" step="1" value="10">
-      </div>
-
-      <div class="ctrl hidden" id="stage2AmtWrap">
-        <div class="ctrl-head"><label>Stage 2</label><span class="ctrl-val" id="v_stage2Amt">&euro;1,500</span></div>
-        <input type="range" id="stage2Amt" min="0" max="5000" step="50" value="1500">
-        <div class="ctrl-sub" id="stage2Range"></div>
-      </div>
-      <div class="ctrl hidden" id="stage2DurWrap">
-        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage2Dur">10</span></div>
-        <input type="range" id="stage2Dur" min="1" max="40" step="1" value="10">
-      </div>
-
-      <div class="ctrl hidden" id="stage3AmtWrap">
-        <div class="ctrl-head"><label>Stage 3</label><span class="ctrl-val" id="v_stage3Amt">&euro;2,500</span></div>
-        <input type="range" id="stage3Amt" min="0" max="5000" step="50" value="2500">
-        <div class="ctrl-sub" id="stage3Range"></div>
-      </div>
-      <div class="ctrl hidden" id="stage3DurWrap">
-        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage3Dur">10</span></div>
-        <input type="range" id="stage3Dur" min="1" max="40" step="1" value="10">
-      </div>
-
-      <div class="ctrl hidden" id="stage4AmtWrap">
-        <div class="ctrl-head"><label>Stage 4</label><span class="ctrl-val" id="v_stage4Amt">&euro;3,500</span></div>
-        <input type="range" id="stage4Amt" min="0" max="5000" step="50" value="3500">
-        <div class="ctrl-sub" id="stage4Range"></div>
-      </div>
-      <div class="ctrl hidden" id="stage4DurWrap">
-        <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage4Dur">10</span></div>
-        <input type="range" id="stage4Dur" min="1" max="40" step="1" value="10">
-      </div>
-
-      <div class="ctrl hidden" id="stage5AmtWrap">
-        <div class="ctrl-head"><label>Stage 5</label><span class="ctrl-val" id="v_stage5Amt">&euro;4,000</span></div>
-        <input type="range" id="stage5Amt" min="0" max="5000" step="50" value="4000">
-        <div class="ctrl-sub" id="stage5Range"></div>
-      </div>
-
-      <div class="ctrl">
         <div class="ctrl-head"><span class="lbl"><label>Real return (after inflation)</label><span class="info" tabindex="0" role="button" aria-label="What is real return?">i<span class="tip">The <b>real return</b> is nominal portfolio growth net of inflation (approximately r<sub>real</sub> ≈ r<sub>nominal</sub> − π). Working in real terms holds every figure at constant purchasing power, so no separate inflation adjustment is needed. A globally diversified equity index has delivered ~5% real historically; adding ~2% inflation implies ~7% nominal.</span></span></span><span class="ctrl-val" id="v_ret2">5.0%</span></div>
         <input type="range" id="rate" min="2" max="8" step="0.25" value="5">
         <div class="chips" id="rateChips">
@@ -407,6 +356,90 @@ svg text{font-family:'Inter',sans-serif}
       <div class="ctrl">
         <div class="ctrl-head"><span class="lbl"><label>Tax on withdrawals (DE)</label><span class="info" tabindex="0" role="button" aria-label="What is the withdrawal tax?">i<span class="tip">Germany's <b>Abgeltungssteuer</b> levies ~26.4% (incl. Solidaritätszuschlag, plus church tax where applicable) on <i>realized</i> investment gains. Because only the capital-gain component of each withdrawal is taxable — not the returned principal — the effective average rate is lower, making ~12–15% a reasonable blended planning estimate.</span></span></span><span class="ctrl-val" id="v_wtax">14%</span></div>
         <input type="range" id="wtax" min="0" max="20" step="1" value="14">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Plan settings</h2>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="lbl"><label>Monthly savings mode</label><span class="info" tabindex="0" role="button" aria-label="Flat rate vs staged">i<span class="tip"><b>Flat rate</b> saves the same amount every month from now to retirement — the simplest assumption and the easiest to reason about. <b>Staged</b> lets the monthly amount step up (or down) at set ages instead, closer to how savings capacity actually tracks a career: entry-level pay, a raise, a mortgage paid off. The independence target and required-monthly figure are unaffected either way — only the accumulation path changes.</span></span></span></div>
+        <input type="hidden" id="savingsMode" value="flat">
+        <div class="chips" id="savingsModeChips">
+          <button class="chip" data-t="flat">Flat rate</button>
+          <button class="chip" data-t="staged">Staged</button>
+        </div>
+      </div>
+
+      <div class="hidden" id="stagesPanel">
+        <div class="ctrl hidden" id="stageCountWrap">
+          <div class="ctrl-head"><label>Number of stages</label></div>
+          <input type="hidden" id="stageCount" value="2">
+          <div class="chips" id="stageCountChips">
+            <button class="chip" data-t="2">2</button>
+            <button class="chip" data-t="3">3</button>
+            <button class="chip" data-t="4">4</button>
+            <button class="chip" data-t="5">5</button>
+          </div>
+        </div>
+
+        <div class="stage-row">
+          <div class="stage-card hidden" id="stage1AmtWrap">
+            <div class="ctrl">
+              <div class="ctrl-head"><label>Stage 1</label><span class="ctrl-val" id="v_stage1Amt">&euro;500</span></div>
+              <input type="range" id="stage1Amt" min="0" max="5000" step="50" value="500">
+              <div class="ctrl-sub" id="stage1Range"></div>
+            </div>
+            <div class="ctrl hidden" id="stage1DurWrap">
+              <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage1Dur">10</span></div>
+              <input type="range" id="stage1Dur" min="1" max="40" step="1" value="10">
+            </div>
+          </div>
+
+          <div class="stage-card hidden" id="stage2AmtWrap">
+            <div class="ctrl">
+              <div class="ctrl-head"><label>Stage 2</label><span class="ctrl-val" id="v_stage2Amt">&euro;1,500</span></div>
+              <input type="range" id="stage2Amt" min="0" max="5000" step="50" value="1500">
+              <div class="ctrl-sub" id="stage2Range"></div>
+            </div>
+            <div class="ctrl hidden" id="stage2DurWrap">
+              <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage2Dur">10</span></div>
+              <input type="range" id="stage2Dur" min="1" max="40" step="1" value="10">
+            </div>
+          </div>
+
+          <div class="stage-card hidden" id="stage3AmtWrap">
+            <div class="ctrl">
+              <div class="ctrl-head"><label>Stage 3</label><span class="ctrl-val" id="v_stage3Amt">&euro;2,500</span></div>
+              <input type="range" id="stage3Amt" min="0" max="5000" step="50" value="2500">
+              <div class="ctrl-sub" id="stage3Range"></div>
+            </div>
+            <div class="ctrl hidden" id="stage3DurWrap">
+              <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage3Dur">10</span></div>
+              <input type="range" id="stage3Dur" min="1" max="40" step="1" value="10">
+            </div>
+          </div>
+
+          <div class="stage-card hidden" id="stage4AmtWrap">
+            <div class="ctrl">
+              <div class="ctrl-head"><label>Stage 4</label><span class="ctrl-val" id="v_stage4Amt">&euro;3,500</span></div>
+              <input type="range" id="stage4Amt" min="0" max="5000" step="50" value="3500">
+              <div class="ctrl-sub" id="stage4Range"></div>
+            </div>
+            <div class="ctrl hidden" id="stage4DurWrap">
+              <div class="ctrl-head"><label>&hellip; for how many years</label><span class="ctrl-val" id="v_stage4Dur">10</span></div>
+              <input type="range" id="stage4Dur" min="1" max="40" step="1" value="10">
+            </div>
+          </div>
+
+          <div class="stage-card hidden" id="stage5AmtWrap">
+            <div class="ctrl">
+              <div class="ctrl-head"><label>Stage 5</label><span class="ctrl-val" id="v_stage5Amt">&euro;4,000</span></div>
+              <input type="range" id="stage5Amt" min="0" max="5000" step="50" value="4000">
+              <div class="ctrl-sub" id="stage5Range"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="ctrl">
@@ -438,35 +471,35 @@ svg text{font-family:'Inter',sans-serif}
         <div class="derived-calc" id="derivedCalc"></div>
       </div>
     </div>
+  </div>
 
-    <div>
-      <div class="panel chart-wrap">
-        <svg id="chart" viewBox="0 0 640 380" width="100%" role="img" aria-label="Projection chart"></svg>
-        <div class="legend">
-          <span><i class="swatch sw-green"></i> Balance if you keep saving</span>
-          <span><i class="swatch sw-brass"></i> Coast line (stop-here threshold)</span>
-          <span><i class="swatch sw-target"></i> Target</span>
-        </div>
-      </div>
+  <div class="panel chart-wrap">
+    <svg id="chart" viewBox="0 0 640 380" width="100%" role="img" aria-label="Projection chart"></svg>
+    <div class="chart-tip" id="chartTip"></div>
+    <div class="legend">
+      <span><i class="swatch sw-green"></i> Balance if you keep saving</span>
+      <span><i class="swatch sw-brass"></i> Coast line (stop-here threshold)</span>
+      <span><i class="swatch sw-contrib"></i> Contributed (no growth)</span>
+      <span><i class="swatch sw-target"></i> Target</span>
+    </div>
+  </div>
 
-      <div class="readouts">
-        <div class="ro accent">
-          <div class="ro-label">Coast number today</div>
-          <div class="ro-num" id="ro_coast">&euro;170,000</div>
-        </div>
-        <div class="ro">
-          <div class="ro-label">You can stop saving at</div>
-          <div class="ro-num" id="ro_cross">age 47</div>
-        </div>
-        <div class="ro">
-          <div class="ro-label">Balance at retirement (current plan)</div>
-          <div class="ro-num" id="ro_final">&euro;1,520,000</div>
-        </div>
-        <div class="ro">
-          <div class="ro-label">Monthly savings to hit target</div>
-          <div class="ro-num" id="ro_req">&euro;780</div>
-        </div>
-      </div>
+  <div class="readouts">
+    <div class="ro accent">
+      <div class="ro-label">Coast number today</div>
+      <div class="ro-num" id="ro_coast">&euro;170,000</div>
+    </div>
+    <div class="ro">
+      <div class="ro-label">You can stop saving at</div>
+      <div class="ro-num" id="ro_cross">age 47</div>
+    </div>
+    <div class="ro">
+      <div class="ro-label">Balance at retirement (current plan)</div>
+      <div class="ro-num" id="ro_final">&euro;1,520,000</div>
+    </div>
+    <div class="ro">
+      <div class="ro-label">Monthly savings to hit target</div>
+      <div class="ro-num" id="ro_req">&euro;780</div>
     </div>
   </div>
 
@@ -539,6 +572,10 @@ const $ = id => document.getElementById(id);
 const euro = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.round(n));
 const euroK = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.round(n/1000)*1000);
 
+// Set at the end of every drawChart() call; read by the hover mousemove
+// handler wired once near the bottom of this script.
+let lastChart = null;
+
 const inputs = {cur:$('cur'), ret:$('ret'), inv:$('inv'), mon:$('mon'), rate:$('rate'),
                 net:$('net'), swr:$('swr'), wtax:$('wtax'),
                 mode:$('mode'), maintainDef:$('maintainDef'), planAge:$('planAge'),
@@ -592,16 +629,24 @@ function compute(p){
     return p.stages[p.stageCount-1].amt*12;
   }
 
-  // yearly series: balance if contributing every year
-  const series = []; // {age, bal, thr}
-  let bal = p.inv;
+  // yearly series: balance if contributing every year. `contributed` is a
+  // parallel running sum of principal paid in (no compounding), starting
+  // from the initial lump sum — always <= bal, since bal compounds every
+  // contribution at r>=2% (slider floor) while contributed sums at 1x.
+  const series = []; // {age, bal, thr, contributed}
+  let bal = p.inv, contributed = p.inv;
   for(let y=0; y<=years; y++){
     const age = p.cur + y;
     const thr = p.tgt / Math.pow(1+r, p.ret-age); // = target at retirement
-    series.push({age, bal, thr});
-    if(y<years) bal = bal*(1+r) + annualAt(y);
+    series.push({age, bal, thr, contributed});
+    if(y<years){
+      const annual = annualAt(y);
+      contributed += annual;
+      bal = bal*(1+r) + annual;
+    }
   }
   const finalBal = series[series.length-1].bal;
+  const finalContributed = series[series.length-1].contributed;
 
   // crossover: where bal first meets/exceeds threshold, interpolated
   let cross = null;
@@ -630,10 +675,10 @@ function compute(p){
   let drawdown = [], runOutAge = null;
   if(p.mode === 'deplete'){
     let dbal = finalBal;
-    drawdown.push({age: p.ret, bal: dbal});
+    drawdown.push({age: p.ret, bal: dbal, contributed: finalContributed});
     for(let age = p.ret + 1; age <= p.planAge; age++){
       const prev = dbal;
-      if(prev <= 0){ drawdown.push({age, bal: 0}); continue; }
+      if(prev <= 0){ drawdown.push({age, bal: 0, contributed: finalContributed}); continue; }
       const next = prev*(1+r) - p.gross;
       if(next <= 0){
         if(runOutAge === null) runOutAge = (age-1) + prev/(prev-next); // linear interpolation, same style as `cross`
@@ -641,7 +686,7 @@ function compute(p){
       } else {
         dbal = next;
       }
-      drawdown.push({age, bal: dbal});
+      drawdown.push({age, bal: dbal, contributed: finalContributed});
     }
   }
 
@@ -674,6 +719,13 @@ function drawChart(p, c){
   // threshold (coast) line — brass dashed
   let thrPts = c.series.map(d=>`${X(d.age).toFixed(1)},${Y(d.thr).toFixed(1)}`).join(' ');
   s += `<polyline points="${thrPts}" fill="none" stroke="var(--brass)" stroke-width="2" stroke-dasharray="5 4"/>`;
+
+  // contributed line — slate dotted; cumulative principal, no compounding.
+  // Extended with the drawdown in deplete mode, where it's carried flat
+  // (no more contributions happen during drawdown).
+  const contribSeries = p.mode==='deplete' ? c.series.concat(c.drawdown.slice(1)) : c.series;
+  let contribPts = contribSeries.map(d=>`${X(d.age).toFixed(1)},${Y(d.contributed).toFixed(1)}`).join(' ');
+  s += `<polyline points="${contribPts}" fill="none" stroke="var(--slate)" stroke-width="2" stroke-dasharray="3 3"/>`;
 
   // balance line — green solid; extended with the drawdown in deplete mode
   const balSeries = p.mode==='deplete' ? c.series.concat(c.drawdown.slice(1)) : c.series;
@@ -771,7 +823,16 @@ function drawChart(p, c){
     s += `<text x="${X(a)}" y="${H-mB+18}" text-anchor="middle" font-size="11" fill="var(--slate)">age ${Math.round(a)}</text>`;
   });
 
+  // Hover overlay — hidden guide line + one dot per visible curve, always
+  // emitted (even though invisible until moused over) so they survive the
+  // next render()'s innerHTML replace rather than being orphaned by it.
+  s += `<line id="hoverGuide" x1="0" y1="${mT}" x2="0" y2="${H-mB}" stroke="var(--slate)" stroke-width="1" stroke-dasharray="2 3" opacity="0"/>`;
+  s += `<circle id="hoverBalDot" r="5" fill="var(--green)" stroke="var(--raised)" stroke-width="2" opacity="0"/>`;
+  s += `<circle id="hoverThrDot" r="5" fill="var(--brass)" stroke="var(--raised)" stroke-width="2" opacity="0"/>`;
+  s += `<circle id="hoverContribDot" r="5" fill="var(--slate)" stroke="var(--raised)" stroke-width="2" opacity="0"/>`;
+
   $('chart').innerHTML = s;
+  lastChart = { X, Y, xMin, xMax, mL, pw, combined: contribSeries };
 }
 
 // mode-agnostic savings description for the status sentence — a no-op
@@ -804,6 +865,7 @@ function render(){
 
   // hero + readouts
   $('heroNum').textContent = euroK(c.coastNow);
+  $('heroSub').textContent = `The lump sum that, left completely untouched, compounds up to your independence target by age ${p.ret} at ${p.rate.toFixed(2).replace(/0$/,'').replace(/\.$/,'')}% real. Below it, you still need to keep saving until your balance catches up.`;
   $('ro_coast').textContent = euroK(c.coastNow);
   $('ro_final').textContent = euroK(c.finalBal);
 
@@ -847,6 +909,7 @@ function render(){
 
   const staged = p.savingsMode==='staged';
   $('monWrap').classList.toggle('hidden', staged);
+  $('stagesPanel').classList.toggle('hidden', !staged);
   $('stageCountWrap').classList.toggle('hidden', !staged);
   for(let i=1;i<=5;i++){
     $('v_stage'+i+'Amt').textContent = euro(p.stages[i-1].amt);
@@ -921,6 +984,44 @@ document.querySelectorAll('#savingsModeChips .chip').forEach(ch=>ch.addEventList
 document.querySelectorAll('#stageCountChips .chip').forEach(ch=>ch.addEventListener('click',()=>{inputs.stageCount.value=ch.dataset.t; update();}));
 
 update();
+
+// Chart hover — exact values on mouseover. Wired once; drawChart() re-emits
+// the hoverGuide/hoverBalDot/etc elements fresh on every render() (they'd
+// otherwise be orphaned by the next innerHTML replace), and stashes the
+// geometry/data this handler needs into `lastChart`. Snaps to the nearest
+// computed year rather than interpolating — a value between two yearly
+// points isn't something the model actually computed.
+$('chart').addEventListener('mousemove', evt=>{
+  if(!lastChart) return;
+  const rect = $('chart').getBoundingClientRect();
+  if(!rect.width) return;
+  const svgX = (evt.clientX - rect.left) * (640/rect.width);
+  const {X, Y, xMin, xMax, mL, pw, combined} = lastChart;
+  let age = xMin + (svgX-mL)/pw*(xMax-xMin);
+  age = Math.max(xMin, Math.min(xMax, age));
+  let idx = combined.findIndex(d=>d.age>=age);
+  if(idx===-1) idx = combined.length-1;
+  if(idx>0 && Math.abs(combined[idx-1].age-age) <= Math.abs(combined[idx].age-age)) idx--;
+  const d = combined[idx];
+  const showThr = d.thr !== undefined;
+
+  $('hoverGuide').setAttribute('x1', X(d.age)); $('hoverGuide').setAttribute('x2', X(d.age)); $('hoverGuide').setAttribute('opacity','0.5');
+  $('hoverBalDot').setAttribute('cx', X(d.age)); $('hoverBalDot').setAttribute('cy', Y(d.bal)); $('hoverBalDot').setAttribute('opacity','1');
+  $('hoverThrDot').setAttribute('opacity', showThr ? '1' : '0');
+  if(showThr){ $('hoverThrDot').setAttribute('cx', X(d.age)); $('hoverThrDot').setAttribute('cy', Y(d.thr)); }
+  $('hoverContribDot').setAttribute('cx', X(d.age)); $('hoverContribDot').setAttribute('cy', Y(d.contributed)); $('hoverContribDot').setAttribute('opacity','1');
+
+  const tip = $('chartTip');
+  tip.style.left = (evt.clientX+14)+'px';
+  tip.style.top = (evt.clientY-12)+'px';
+  tip.style.display = 'block';
+  tip.innerHTML = `age ${Math.round(d.age)}<br>balance ${euro(d.bal)}<br>contributed ${euro(d.contributed)}` +
+    (showThr ? `<br>coast line ${euro(d.thr)}` : '');
+});
+$('chart').addEventListener('mouseleave', ()=>{
+  ['hoverGuide','hoverBalDot','hoverThrDot','hoverContribDot'].forEach(id=>$(id).setAttribute('opacity','0'));
+  $('chartTip').style.display = 'none';
+});
 
 // keep a tooltip inside the viewport on narrow screens
 function placeTip(icon){

@@ -210,5 +210,31 @@ for (const [name, inp] of Object.entries(stagedCases)) {
     monotone.map((v) => (v === Infinity ? 'never' : v.toFixed(1))).join(' → ')) && ok;
 }
 
+console.log('\nContributed line (pure running sum, no compounding)');
+{
+  const { p, c } = scenario(DEFAULTS);
+  ok = report('contributed starts at invested-today', c.series[0].contributed === p.inv) && ok;
+  ok = report('contributed is non-decreasing',
+    c.series.every((d, i) => i === 0 || d.contributed >= c.series[i - 1].contributed)) && ok;
+  ok = report('balance never below contributed (r>=2% floor, contributions>=0)',
+    c.series.every((d) => d.bal >= d.contributed - 1e-9)) && ok;
+  ok = report('contributed at retirement matches inv + flat annual sum',
+    Math.abs(c.series.at(-1).contributed - (p.inv + p.mon * 12 * c.years)) < 1,
+    `got ${fmt(c.series.at(-1).contributed)}`) && ok;
+}
+{
+  const dep = scenario({ ...DEFAULTS, mode: 'deplete', planAge: 90 });
+  ok = report('contributed stays flat through drawdown',
+    dep.c.drawdown.every((d) => d.contributed === dep.c.series.at(-1).contributed)) && ok;
+}
+{
+  const FLAT_MON = 1200;
+  const flat = scenario({ ...DEFAULTS, mon: FLAT_MON });
+  const staged = scenario({ ...DEFAULTS, savingsMode: 'staged', stageCount: 3,
+    stage1Amt: FLAT_MON, stage1Dur: 15, stage2Amt: FLAT_MON, stage2Dur: 15, stage3Amt: FLAT_MON });
+  ok = report('uniform staged plan matches flat mode contributed exactly',
+    Math.round(staged.c.series.at(-1).contributed) === Math.round(flat.c.series.at(-1).contributed)) && ok;
+}
+
 console.log(ok ? '\nAll model checks passed.\n' : '\nMODEL CHECKS FAILED.\n');
 process.exit(ok ? 0 : 1);
