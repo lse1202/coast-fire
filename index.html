@@ -112,6 +112,29 @@ body{
 .ctrl-num::-webkit-outer-spin-button,.ctrl-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .ctrl-num:focus{border-color:var(--brass-soft)}
 
+.tabbar{display:flex;gap:24px;margin-bottom:28px;border-bottom:1px solid var(--hair)}
+.tab{
+  font-family:inherit;font-size:14px;font-weight:600;color:var(--slate);
+  background:transparent;border:none;padding:10px 2px;cursor:pointer;
+  border-bottom:2px solid transparent;transition:color .12s,border-color .12s;
+}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--ink);border-bottom-color:var(--brass)}
+
+.explain-panel{margin-top:20px}
+.explain-panel:first-child{margin-top:0}
+.explain-panel h2{
+  font-family:'Fraunces',serif;font-weight:500;font-size:19px;
+  margin-bottom:14px;letter-spacing:-.01em;
+}
+.explain-panel p{margin-bottom:12px}
+.explain-panel p:last-child{margin-bottom:0}
+.formula{
+  font-family:'Fraunces',serif;font-size:15px;font-style:italic;color:var(--ink);
+  background:var(--paper);border:1px solid var(--hair);border-radius:8px;
+  padding:12px 16px;margin:14px 0;line-height:1.7;
+}
+
 .lbl{display:inline-flex;align-items:center;gap:6px}
 .info{
   position:relative;display:inline-flex;align-items:center;justify-content:center;
@@ -240,6 +263,13 @@ svg text{font-family:'Inter',sans-serif}
 </div>
 
 <div class="wrap app-hidden" id="app">
+
+  <div class="tabbar" id="tabbar">
+    <button class="tab on" data-t="calc">Calculator</button>
+    <button class="tab" data-t="explain">How it works</button>
+  </div>
+
+  <div id="calcView">
 
   <div class="eyebrow">Coast FIRE &nbsp;·&nbsp; the invest-once-and-stop number</div>
 
@@ -443,6 +473,63 @@ svg text{font-family:'Inter',sans-serif}
   <div class="foot">
     <b>How to read it.</b> The <b>coast number</b> is your target discounted back to today at the real return &mdash; hit it and you could stop contributing entirely. The green line is where your current monthly savings actually take you; the brass line is the minimum you'd need at each age to coast the rest of the way. Where they cross, saving becomes optional. Real return means after inflation, so every figure is in today's purchasing power. Not financial advice &mdash; these are planning rules of thumb, and they ignore German withdrawal tax nuances, sequence-of-returns risk, and any state pension.
     <span class="foot-p"><b>Privacy.</b> Every figure is computed in your own browser. Nothing you enter is transmitted, stored, or logged &mdash; no cookies, no analytics, no third-party requests of any kind. Even the fonts are embedded in the page rather than fetched from Google, so opening this discloses nothing to anyone but the server hosting it. <a href="privacy.html">Datenschutzerkl&auml;rung / Privacy notice</a>.</span>
+  </div>
+
+  </div>
+
+  <div id="explainerView" class="hidden">
+
+    <div class="panel explain-panel">
+      <h2>What &ldquo;Coast FIRE&rdquo; means</h2>
+      <p>Most retirement planning asks: how much do I need to save? This tool asks a narrower, more useful question: how much do I need to have <b>right now</b>, such that if I never saved another euro, growth alone would carry that amount to my target by retirement?</p>
+      <p>That amount is the <b>coast number</b>. Below it, you're still on the hook to keep contributing. At or above it, saving becomes optional &mdash; the portfolio glides, or &ldquo;coasts,&rdquo; the rest of the way on compounding alone.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>Everything is in today's euros</h2>
+      <p>Every figure here &mdash; the target, the coast number, your monthly contribution &mdash; is expressed in today's purchasing power, not the actual number of euros you'll eventually hold. Instead of projecting inflation forward and discounting it back out later, the tool works entirely in <b>real</b> terms from the start:</p>
+      <div class="formula">r<sub>real</sub> &asymp; r<sub>nominal</sub> &minus; inflation</div>
+      <p>Using a real return everywhere means inflation never has to be added or removed anywhere else. If you actually retire in 30 years, the number of paper euros in your account will be far larger &mdash; inflated &mdash; but it will buy exactly what today's figure buys today.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>Building the independence target</h2>
+      <p><b>Step 1 &mdash; gross up your spending for tax.</b> You said how much you want to live on after tax; this converts it to what you'd need to withdraw before tax, since Germany's Abgeltungssteuer only taxes the growth portion of a withdrawal, not the whole amount.</p>
+      <div class="formula">gross = (net income &times; 12) &divide; (1 &minus; tax rate)</div>
+      <p><b>Step 2 &mdash; turn that into a target portfolio size.</b> There are three ways to do this, chosen by the &ldquo;at retirement, the portfolio should&rdquo; setting:</p>
+      <div class="formula">
+        target = gross &divide; withdrawal rate&nbsp;&nbsp;&nbsp;&nbsp;<i>(last forever, SWR-based)</i><br>
+        target = gross &divide; real return&nbsp;&nbsp;&nbsp;&nbsp;<i>(last forever, true perpetuity)</i><br>
+        target = gross &times; (1 &minus; (1+r)<sup>&minus;n</sup>) &divide; r&nbsp;&nbsp;&nbsp;&nbsp;<i>(deplete by a chosen age, n = years in retirement)</i>
+      </div>
+      <p>The SWR-based version is the default and the recommendation. Dividing by a withdrawal rate set <i>below</i> your expected return (e.g. 3.5% against an expected 5%) leaves a buffer for the years when markets do worse than average right as you start withdrawing &mdash; called <b>sequence-of-returns risk</b>, and it's the main reason a retirement number isn't simply spending &divide; expected return.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>Coast number &amp; crossover</h2>
+      <div class="formula">coast number = target &divide; (1 + r)<sup>t</sup>&nbsp;&nbsp;&nbsp;&nbsp;<i>(t = years to retirement)</i></div>
+      <p>This is just the target, discounted backward to today at your real return &mdash; the amount that, compounding alone with zero further contributions, reaches the target exactly at retirement.</p>
+      <p>More generally, at any age between now and retirement:</p>
+      <div class="formula">coast threshold(age) = target &divide; (1 + r)<sup>t</sup>&nbsp;&nbsp;&nbsp;&nbsp;<i>(t = years remaining at that age)</i></div>
+      <p>Your actual balance, projected forward year by year with your contributions, is compared against this threshold every year. The <b>crossover</b> is the age where your projected balance first catches up to it &mdash; the point past which further saving is optional.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>Required monthly savings</h2>
+      <div class="formula">required monthly = ((target &minus; invested-today grown to retirement) &divide; annuity factor) &divide; 12</div>
+      <p>This answers a separate, simpler question: ignoring coasting entirely, what flat monthly contribution &mdash; starting now, never changing &mdash; would land exactly on the target at retirement? It's shown as a fixed reference figure regardless of whether your actual plan is a flat rate or staged.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>Staged savings</h2>
+      <p>Real savings capacity rarely stays flat &mdash; a raise, a mortgage paid off, a career change. Staged mode lets you describe up to five stages instead of one number; each stage's amount applies only for its own years, then the model moves to the next. Nothing about the target or crossover math changes &mdash; only which contribution gets added to the balance each year.</p>
+    </div>
+
+    <div class="panel explain-panel">
+      <h2>What this doesn't account for</h2>
+      <p>This model shows a single deterministic path at one assumed return &mdash; not a range of possible outcomes, and not the year-to-year volatility that real markets have even when the long-run average matches your assumption. It also ignores German tax nuance beyond a single blended rate, and any state pension (gesetzliche Rente) that would reduce the income your portfolio needs to cover. Nothing here is financial advice &mdash; these are planning rules of thumb.</p>
+    </div>
+
   </div>
 
 </div>
@@ -865,6 +952,14 @@ document.querySelectorAll('.info').forEach(el=>{
 });
 document.addEventListener('click', ()=>document.querySelectorAll('.info.open').forEach(o=>o.classList.remove('open')));
 window.addEventListener('resize', ()=>document.querySelectorAll('.info').forEach(placeTip));
+
+// Tab bar — pure navigation, independent of the calculator's own state
+document.querySelectorAll('#tabbar .tab').forEach(t=>t.addEventListener('click', ()=>{
+  document.querySelectorAll('#tabbar .tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  $('calcView').classList.toggle('hidden', t.dataset.t!=='calc');
+  $('explainerView').classList.toggle('hidden', t.dataset.t!=='explain');
+}));
 
 // Password gate — a casual deterrent, not real security (this is a static
 // file with no backend, so the password is visible to anyone who reads the
